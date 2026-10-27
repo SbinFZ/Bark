@@ -11,7 +11,8 @@ import RxSwift
 import SwiftUI
 import UIKit
 
-let defaultServer = "https://api.day.app"
+let defaultServer = "https://bark.aboycando.app"
+private let legacyDefaultServer = "https://api.day.app"
 
 class Server: Codable {
     let id: String
@@ -67,7 +68,19 @@ class ServerManager: NSObject {
     override private init() {
         var servers: [Server] = []
         if let savedServers: [Server] = Settings[.servers] {
-            servers = savedServers
+            var migrated = false
+            servers = savedServers.map { server in
+                if server.cleanAddress.lowercased() == legacyDefaultServer {
+                    migrated = true
+                    let updated = Server(id: server.id, address: defaultServer, key: "")
+                    updated.name = server.name
+                    return updated
+                }
+                return server
+            }
+            if migrated {
+                Settings[.servers] = servers
+            }
         }
 
         if servers.count <= 0 {

@@ -1,0 +1,19 @@
+name = "bark-aboycando-server"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+account_id = "4d99845e8fa4969b66fa87c2208ffbcb"
+workers_dev = true
+
+routes = [
+  { pattern = "bark.aboycando.app", custom_domain = true }
+]
+
+[[kv_namespaces]]
+binding = "BARK_DEVICES"
+id = "b5c8228262e643589f5cd7631614cd1e"
+
+[vars]
+APNS_TEAM_ID = "258YT6DJD6"
+APNS_KEY_ID = "STYSL54DAQ"
+APNS_TOPIC = "bark.aboycando.app"
+DEFAULT_GROUP = "sbin-sg-workstation"

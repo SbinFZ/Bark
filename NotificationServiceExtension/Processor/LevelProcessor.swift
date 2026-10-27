@@ -16,8 +16,11 @@ class LevelProcessor: NotificationContentProcessor {
         }
         
         if bestAttemptContent.isCritical {
-            // 设置重要警告音效
-            LevelProcessor.setCriticalSound(content: bestAttemptContent)
+            if #available(iOSApplicationExtension 15.0, *) {
+                bestAttemptContent.interruptionLevel = .timeSensitive
+            }
+            let sound = bestAttemptContent.soundName ?? "alarm.caf"
+            bestAttemptContent.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: sound))
             return bestAttemptContent
         }
         

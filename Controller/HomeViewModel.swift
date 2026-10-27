@@ -18,7 +18,7 @@ class HomeViewModel: ViewModel, ViewModelType {
     private enum ExampleParams {
         static let title = "title"
         static let body = "body"
-        static let group = "example"
+        static let group = "sbin-sg-workstation"
         static let ttl = 600
     }
 

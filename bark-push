@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""
+Bark Push CLI via Cloudflare Edge Server (https://bark.aboycando.app)
+Bundle ID: bark.aboycando.app | Team: EDGEWISE PTE. LTD. (258YT6DJD6)
+Official Signature: BySbinAuto v3sj
+"""
+import argparse
+import json
+import os
+import sys
+import urllib.request
+import urllib.error
+
+DEFAULT_SERVER = os.environ.get("BARK_SERVER_URL", "https://bark.aboycando.app").rstrip("/")
+DEFAULT_KEY = os.environ.get("BARK_DEVICE_KEY", "p8bAcv8JNR9XBhfYnj4KH7")
+DEFAULT_GROUP = "sbin-sg-workstation"
+DEFAULT_ICON = "https://github.githubassets.com/favicons/favicon-dark.png"
+
+
+def send_push(
+    title: str,
+    body: str,
+    subtitle: str = "",
+    device_key: str = DEFAULT_KEY,
+    group: str = DEFAULT_GROUP,
+    level: str = "active",
+    icon: str = DEFAULT_ICON,
+    sound: str = "",
+    url: str = "",
+    markdown: str = "",
+    call: bool = False,
+) -> dict:
+    payload = {
+        "device_key": device_key,
+        "title": title,
+        "body": body,
+        "group": group,
+        "level": level,
+        "icon": icon,
+        "isArchive": "1",
+    }
+    if subtitle:
+        payload["subtitle"] = subtitle
+    if sound:
+        payload["sound"] = sound
+    elif level == "critical":
+        payload["sound"] = "alarm"
+        payload["call"] = "1"
+    elif level == "timeSensitive":
+        payload["sound"] = "bell"
+    if url:
+        payload["url"] = url
+    if markdown:
+        payload["markdown"] = markdown
+    if call:
+        payload["call"] = "1"
+
+    req = urllib.request.Request(
+        f"{DEFAULT_SERVER}/push",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "User-Agent": "BarkPushCLI/1.0 (BySbinAuto v3sj)",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            return json.loads(raw)
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode("utf-8", errors="replace")
+        return {"code": e.code, "message": raw}
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Send Bark push notification via https://bark.aboycando.app"
+    )
+    parser.add_argument("title", help="Notification title")
+    parser.add_argument("body", help="Notification body")
+    parser.add_argument("-s", "--subtitle", default="", help="Optional subtitle")
+    parser.add_argument(
+        "-k",
+        "--key",
+        default=DEFAULT_KEY,
+        help=f"Bark device key (default: {DEFAULT_KEY})",
+    )
+    parser.add_argument(
+        "-g",
+        "--group",
+        default=DEFAULT_GROUP,
+        help=f"Notification group (default: {DEFAULT_GROUP})",
+    )
+    parser.add_argument(
+        "-l",
+        "--level",
+        default="active",
+        choices=["passive", "active", "timeSensitive", "critical"],
+        help="Interruption level (active | timeSensitive | critical | passive)",
+    )
+    parser.add_argument(
+        "-i", "--icon", default=DEFAULT_ICON, help="Custom notification icon URL"
+    )
+    parser.add_argument("--sound", default="", help="Custom sound name (e.g. alarm, bell)")
+    parser.add_argument("-u", "--url", default="", help="URL to open on tap")
+    parser.add_argument("-m", "--markdown", default="", help="Markdown body content")
+    parser.add_argument(
+        "--call", action="store_true", help="Ring continuously for 30 seconds"
+    )
+    args = parser.parse_args()
+
+    res = send_push(
+        title=args.title,
+        body=args.body,
+        subtitle=args.subtitle,
+        device_key=args.key,
+        group=args.group,
+        level=args.level,
+        icon=args.icon,
+        sound=args.sound,
+        url=args.url,
+        markdown=args.markdown,
+        call=args.call,
+    )
+    print(json.dumps(res, ensure_ascii=False))
+    if res.get("code") != 200:
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

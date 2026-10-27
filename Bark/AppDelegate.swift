@@ -61,7 +61,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             dispatch_sync_safely_main_queue {
-                if settings.authorizationStatus == .authorized {
+                if settings.authorizationStatus == .authorized || settings.authorizationStatus == .notDetermined {
                     Client.shared.registerForRemoteNotifications()
                 }
             }
@@ -89,6 +89,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let deviceTokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         Client.shared.deviceToken.accept(deviceTokenString)
+        UserDefaults(suiteName: "group.bark.aboycando.app")?.set(deviceTokenString, forKey: "apnsDeviceToken")
+        if let docUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            try? deviceTokenString.write(to: docUrl.appendingPathComponent("apns_device_token.txt"), atomically: true, encoding: .utf8)
+        }
 
         // 注册设备
         ServerManager.shared.syncAllServers()
@@ -123,7 +127,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         }
     }
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        return .alert
+        await processPendingMessages()
+        if #available(iOS 14.0, *) {
+            return [.banner, .list, .sound, .badge]
+        }
+        return [.alert, .sound, .badge]
     }
     
     func handleNotification(userInfo: [AnyHashable: Any]) {
